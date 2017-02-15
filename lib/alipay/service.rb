@@ -93,6 +93,30 @@ module Alipay
 
       request_uri(params, options).to_s
     end
+    
+    CREATE_REFUND_URL_REQUIRED_PARAMS = %w( batch_no data notify_url )
+    def self.refund_fastpay_by_platform_nopwd(params, options = {})
+      params = Utils.stringify_keys(params)
+      check_required_params(params, CREATE_REFUND_URL_REQUIRED_PARAMS)
+
+      data = params.delete('data')
+      detail_data = data.map do|item|
+        item = Utils.stringify_keys(item)
+        "#{item['trade_no']}^#{item['amount']}^#{item['reason']}"
+      end.join('#')
+
+      params = {
+        'service'        => 'refund_fastpay_by_platform_nopwd',
+        '_input_charset' => 'utf-8',
+        'partner'        => options[:pid] || Alipay.pid,
+        'seller_user_id' => options[:pid] || Alipay.pid,
+        'refund_date'    => Time.now.strftime('%Y-%m-%d %H:%M:%S'),
+        'batch_num'      => data.size,
+        'detail_data'    => detail_data
+      }.merge(params)
+
+      Alipay::Result.new(Hash.from_xml(Net::HTTP.get(request_uri(params, options))))
+    end
 
     CREATE_FOREX_SINGLE_REFUND_URL_REQUIRED_PARAMS = %w( out_return_no out_trade_no return_amount currency reason )
     def self.forex_refund_url(params, options = {})
